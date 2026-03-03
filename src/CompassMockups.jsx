@@ -117,16 +117,33 @@ function ReasoningToggle({ reasoning, confidence }) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, flipBelow: false });
   const ref = useRef(null);
+  const tooltipWidth = 280;
+  const viewportPad = 12;
 
   const handleEnter = () => {
     if (ref.current) {
       const rect = ref.current.getBoundingClientRect();
-      const flipBelow = rect.top < 120;
-      setPos({
-        left: rect.left + rect.width / 2,
-        top: flipBelow ? rect.bottom + 6 : rect.top - 6,
-        flipBelow,
-      });
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+
+      // Horizontal: center on icon, then clamp so tooltip stays in viewport
+      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+      if (left < viewportPad) left = viewportPad;
+      if (left + tooltipWidth > vw - viewportPad) left = vw - viewportPad - tooltipWidth;
+
+      // Vertical: prefer above, flip below if not enough room at top,
+      // also flip below if placing above would go off-screen
+      const flipBelow = rect.top < 120 || rect.top - 6 < viewportPad;
+      let top;
+      if (flipBelow) {
+        top = rect.bottom + 6;
+        // If it would go off the bottom, clamp it
+        if (top + 100 > vh) top = vh - 120;
+      } else {
+        top = rect.top - 6;
+      }
+
+      setPos({ left, top, flipBelow });
     }
     setShow(true);
   };
@@ -151,8 +168,9 @@ function ReasoningToggle({ reasoning, confidence }) {
           left: pos.left,
           top: pos.flipBelow ? pos.top : "auto",
           bottom: pos.flipBelow ? "auto" : `calc(100vh - ${pos.top}px)`,
-          transform: "translateX(-50%)",
-          width: 280, padding: "10px 12px", background: c.surfaceRaised, border: `1px solid ${c.border}`,
+          maxHeight: `calc(100vh - ${2 * viewportPad}px)`,
+          overflowY: "auto",
+          width: tooltipWidth, padding: "10px 12px", background: c.surfaceRaised, border: `1px solid ${c.border}`,
           borderRadius: 6, fontSize: 12, color: c.textSecondary, lineHeight: 1.5,
           fontFamily: font.sans,
           zIndex: 99999, pointerEvents: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
