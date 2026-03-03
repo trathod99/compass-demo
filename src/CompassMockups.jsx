@@ -752,7 +752,7 @@ function CycleView() {
               )}
               <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 {issue.labels.map(l => (
-                  <span key={l.text} style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: `${l.color}18`, color: l.color, fontWeight: 500 }}>{l.text}</span>
+                  <span key={l.text} style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: c.surfaceRaised, color: c.textSecondary, fontWeight: 500 }}>{l.text}</span>
                 ))}
               </div>
               {issue.project && (
@@ -917,32 +917,53 @@ function CycleView() {
 // ============================================
 // MAIN APP — Tab Navigation
 // ============================================
+const viewDescriptions = {
+  "initiatives-list": "Five issues about performance keep popping up across three different teams, but nobody owns the problem yet. Compass notices the pattern and suggests rolling them into a new initiative.",
+  "project-detail": "This project is supposed to be about building Smart Search — but a few issues in here are really just customer bug fixes. Compass flags what doesn't belong and warns when recent work is drifting from the plan.",
+  "cycle": "This sprint is scoped to auth and rate limiting. Compass spots four issues that have nothing to do with that goal, plus two that have been quietly carried over for multiple sprints without making progress.",
+};
+
 export default function CompassMockups() {
   const [view, setView] = useState("project-detail");
+  const [barHeight, setBarHeight] = useState(120);
+  const barRef = useRef(null);
+
+  const tabs = [
+    { id: "initiatives-list", label: "Initiatives" },
+    { id: "project-detail", label: "Projects" },
+    { id: "cycle", label: "Cycles" },
+  ];
+
+  React.useEffect(() => {
+    if (barRef.current) {
+      setBarHeight(barRef.current.offsetHeight);
+    }
+  }, [view]);
 
   return (
     <div>
-      <div style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: c.surface, borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "center", padding: "10px 0", gap: 6, fontFamily: font.sans }}>
-        <span style={{ display: "flex", color: c.amber, marginRight: 2 }}>{Icons.compass}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: c.text, marginRight: 14 }}>Compass</span>
-        <div style={{ display: "flex", background: c.bg, borderRadius: 8, padding: 3, gap: 2, border: `1px solid ${c.border}` }}>
-          {[
-            { id: "initiatives-list", label: "Initiatives List" },
-            { id: "project-detail", label: "Project Detail" },
-            { id: "cycle", label: "Cycle View" },
-          ].map(tab => (
-            <button key={tab.id} onClick={() => setView(tab.id)} style={{
-              background: view === tab.id ? c.accent : "transparent",
-              border: "none",
-              borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500,
-              color: view === tab.id ? "white" : c.textSecondary,
-              cursor: "pointer", fontFamily: font.sans,
-              transition: "all 0.15s ease",
-            }}>{tab.label}</button>
-          ))}
+      <div ref={barRef} style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: c.surface, borderBottom: `1px solid ${c.border}`, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 0", fontFamily: font.sans }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ display: "flex", color: c.amber, marginRight: 2 }}>{Icons.compass}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: c.text, marginRight: 14 }}>Compass</span>
+          <div style={{ display: "flex", background: c.bg, borderRadius: 8, padding: 3, gap: 2, border: `1px solid ${c.border}` }}>
+            {tabs.map(tab => (
+              <button key={tab.id} onClick={() => setView(tab.id)} style={{
+                background: view === tab.id ? c.accent : "transparent",
+                border: "none",
+                borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500,
+                color: view === tab.id ? "white" : c.textSecondary,
+                cursor: "pointer", fontFamily: font.sans,
+                transition: "all 0.15s ease",
+              }}>{tab.label}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ maxWidth: 540, textAlign: "center", padding: "12px 20px 14px", fontSize: 12.5, color: c.text, lineHeight: 1.6 }}>
+          {viewDescriptions[view]}
         </div>
       </div>
-      <div style={{ paddingTop: 50 }}>
+      <div style={{ paddingTop: barHeight }}>
         {view === "initiatives-list" && <InitiativesList />}
         {view === "project-detail" && <ProjectDetail />}
         {view === "cycle" && <CycleView />}
