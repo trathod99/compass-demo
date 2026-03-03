@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import ReactDOM from "react-dom";
 
 // Color tokens matched to Linear's actual dark theme (from screenshots)
@@ -110,6 +110,21 @@ const Icons = {
   ),
 };
 
+// Hook: responsive breakpoint (fires only at crossing, not every pixel)
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < breakpoint
+  );
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener("change", handler);
+    return () => mql.removeEventListener("change", handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 // Reusable AI reasoning indicator — sparkle icon with hover tooltip
 // Uses a portal so the tooltip escapes parent overflow clipping.
 // Auto-flips below the icon when too close to the top of the viewport.
@@ -219,7 +234,8 @@ function HoverTab({ children, active, onClick, style }) {
 }
 
 // Shared sidebar component
-function Sidebar({ activeItem }) {
+function Sidebar({ activeItem, isMobile }) {
+  if (isMobile) return null;
   return (
     <div style={{ width: 220, borderRight: `1px solid ${c.border}`, minHeight: "calc(100vh - 50px)", padding: "10px 8px", background: c.bg, flexShrink: 0 }}>
       {/* Top nav items */}
@@ -277,10 +293,10 @@ function Sidebar({ activeItem }) {
 }
 
 // Top bar
-function TopBar({ children, right }) {
+function TopBar({ children, right, isMobile }) {
   return (
-    <div style={{ height: 50, borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 20px", fontSize: 13, color: c.textSecondary, background: c.bg }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>{children}</div>
+    <div style={{ height: isMobile ? "auto" : 50, minHeight: isMobile ? 42 : undefined, borderBottom: `1px solid ${c.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", padding: isMobile ? "8px 12px" : "0 20px", fontSize: 13, color: c.textSecondary, background: c.bg }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, overflow: "hidden" }}>{children}</div>
       {right && <div style={{ display: "flex", alignItems: "center", gap: 10 }}>{right}</div>}
     </div>
   );
@@ -289,7 +305,7 @@ function TopBar({ children, right }) {
 // ============================================
 // MOCKUP 1: Initiatives List with Emerging Theme
 // ============================================
-function InitiativesList() {
+function InitiativesList({ isMobile }) {
   const [themeDismissed, setThemeDismissed] = useState(false);
 
   const initiatives = [
@@ -301,18 +317,18 @@ function InitiativesList() {
 
   return (
     <div style={{ background: c.bg, minHeight: "100vh", fontFamily: font.sans, color: c.text }}>
-      <TopBar>
+      <TopBar isMobile={isMobile}>
         <span style={{ color: c.text, fontWeight: 500 }}>Tyler's Demo</span>
         <span style={{ display: "flex", color: c.textTertiary }}>{Icons.search}</span>
         <span style={{ display: "flex", color: c.amber }}>{Icons.compass}</span>
       </TopBar>
 
       <div style={{ display: "flex" }}>
-        <Sidebar activeItem="Initiatives" />
+        <Sidebar activeItem="Initiatives" isMobile={isMobile} />
 
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {/* Page header */}
-          <div style={{ padding: "24px 32px 0" }}>
+          <div style={{ padding: isMobile ? "20px 16px 0" : "24px 32px 0" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
               <h1 style={{ fontSize: 18, fontWeight: 600, margin: 0, letterSpacing: "-0.01em" }}>Initiatives</h1>
               <span style={{ fontSize: 13, color: c.accent, cursor: "pointer" }}>+ New initiative</span>
@@ -328,7 +344,7 @@ function InitiativesList() {
 
           {/* Compass: Emerging Theme Banner */}
           {!themeDismissed && (
-            <div style={{ margin: "18px 32px", padding: "16px 20px", background: c.surface, border: `1px solid ${c.border}`, borderRadius: 6 }}>
+            <div style={{ margin: isMobile ? "12px 16px" : "18px 32px", padding: isMobile ? "14px 16px" : "16px 20px", background: c.surface, border: `1px solid ${c.border}`, borderRadius: 6 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ display: "flex", color: c.amber }}>{Icons.compass}</span>
@@ -362,16 +378,16 @@ function InitiativesList() {
           )}
 
           {/* Column headers */}
-          <div style={{ display: "flex", padding: "10px 32px", borderBottom: `1px solid ${c.border}`, fontSize: 12, color: c.textTertiary }}>
+          <div style={{ display: "flex", padding: isMobile ? "10px 16px" : "10px 32px", borderBottom: `1px solid ${c.border}`, fontSize: 12, color: c.textTertiary }}>
             <span style={{ flex: 1, minWidth: 0 }}>Name</span>
-            <span style={{ width: 90, textAlign: "center", flexShrink: 0 }}>Projects</span>
-            <span style={{ width: 100, textAlign: "center", flexShrink: 0 }}>Health</span>
-            <span style={{ width: 80, textAlign: "right", flexShrink: 0 }}>Owner</span>
+            {!isMobile && <span style={{ width: 90, textAlign: "center", flexShrink: 0 }}>Projects</span>}
+            {!isMobile && <span style={{ width: 100, textAlign: "center", flexShrink: 0 }}>Health</span>}
+            {!isMobile && <span style={{ width: 80, textAlign: "right", flexShrink: 0 }}>Owner</span>}
           </div>
 
           {/* Initiative rows */}
           {initiatives.map((init) => (
-            <HoverRow key={init.name} style={{ display: "flex", alignItems: "center", padding: "12px 32px", borderBottom: `1px solid ${c.borderSubtle}`, cursor: "pointer" }}>
+            <HoverRow key={init.name} style={{ display: "flex", alignItems: "center", padding: isMobile ? "10px 16px" : "12px 32px", borderBottom: `1px solid ${c.borderSubtle}`, cursor: "pointer" }}>
               <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ display: "flex", color: c.textTertiary, flexShrink: 0 }}>
@@ -381,13 +397,13 @@ function InitiativesList() {
                 </div>
                 <div style={{ fontSize: 13, color: c.textTertiary, marginLeft: 24, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 1 }}>{init.desc}</div>
               </div>
-              <span style={{ width: 90, textAlign: "center", fontSize: 13, color: c.textSecondary, flexShrink: 0 }}>
+              {!isMobile && <span style={{ width: 90, textAlign: "center", fontSize: 13, color: c.textSecondary, flexShrink: 0 }}>
                 <span style={{ color: c.green }}>⊘</span> {init.projects}
-              </span>
-              <span style={{ width: 100, textAlign: "center", fontSize: 12, color: c.textTertiary, flexShrink: 0 }}>
+              </span>}
+              {!isMobile && <span style={{ width: 100, textAlign: "center", fontSize: 12, color: c.textTertiary, flexShrink: 0 }}>
                 <span style={{ opacity: 0.5 }}>○</span> No updates
-              </span>
-              <span style={{ width: 80, textAlign: "right", fontSize: 13, color: c.textTertiary, flexShrink: 0 }}>—</span>
+              </span>}
+              {!isMobile && <span style={{ width: 80, textAlign: "right", fontSize: 13, color: c.textTertiary, flexShrink: 0 }}>—</span>}
             </HoverRow>
           ))}
         </div>
@@ -399,7 +415,7 @@ function InitiativesList() {
 // ============================================
 // MOCKUP 2: Project Detail with Compass Tab
 // ============================================
-function ProjectDetail() {
+function ProjectDetail({ isMobile }) {
   const [activeTab, setActiveTab] = useState("Compass");
   const [expandedInsight, setExpandedInsight] = useState(null);
   const [dismissed, setDismissed] = useState(new Set());
@@ -423,7 +439,7 @@ function ProjectDetail() {
 
   return (
     <div style={{ background: c.bg, minHeight: "100vh", fontFamily: font.sans, color: c.text }}>
-      <TopBar
+      <TopBar isMobile={isMobile}
         right={<div style={{ display: "flex", gap: 10, color: c.textTertiary }}><span style={{ display: "flex", cursor: "pointer" }}>{Icons.star}</span><span style={{ display: "flex", cursor: "pointer" }}>{Icons.dots}</span></div>}>
         <span style={{ color: c.textSecondary }}>Projects</span>
         <span style={{ color: c.textTertiary, fontSize: 11 }}>›</span>
@@ -432,13 +448,13 @@ function ProjectDetail() {
       </TopBar>
 
       <div style={{ display: "flex" }}>
-        <Sidebar activeItem="Projects" />
+        <Sidebar activeItem="Projects" isMobile={isMobile} />
 
         <div style={{ flex: 1, minWidth: 0, display: "flex" }}>
           {/* Main content area */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Tabs */}
-            <div style={{ display: "flex", gap: 0, padding: "0 32px", borderBottom: `1px solid ${c.border}` }}>
+            <div style={{ display: "flex", gap: 0, padding: isMobile ? "0 16px" : "0 32px", borderBottom: `1px solid ${c.border}` }}>
               {["Overview", "Updates", "Issues", "Compass"].map(tab => (
                 <HoverTab key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)} style={{
                   padding: "12px 14px",
@@ -463,7 +479,7 @@ function ProjectDetail() {
 
             {/* Compass tab content */}
             {activeTab === "Compass" && (
-              <div style={{ padding: "24px 32px" }}>
+              <div style={{ padding: isMobile ? "20px 16px" : "24px 32px" }}>
                 {activeInsights.map(insight => (
                   <div key={insight.id} style={{ borderBottom: `1px solid ${c.border}`, paddingBottom: insight.details.length > 0 && expandedInsight === insight.id ? 0 : 14, marginBottom: 14 }}>
                     <HoverRow onClick={() => setExpandedInsight(expandedInsight === insight.id ? null : insight.id)} style={{ display: "flex", alignItems: "flex-start", cursor: "pointer", padding: "8px 10px 10px", borderRadius: 5 }}>
@@ -500,7 +516,7 @@ function ProjectDetail() {
 
             {/* Overview tab content */}
             {activeTab === "Overview" && (
-              <div style={{ padding: "32px 32px" }}>
+              <div style={{ padding: isMobile ? "24px 16px" : "32px 32px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
                   <span style={{ display: "flex", color: c.textTertiary }}>{Icons.projects}</span>
                 </div>
@@ -559,7 +575,7 @@ function ProjectDetail() {
           </div>
 
           {/* Right sidebar — matches Linear's project sidebar */}
-          <div style={{ width: 270, flexShrink: 0, borderLeft: `1px solid ${c.border}`, padding: "18px 18px", minHeight: "calc(100vh - 50px)", fontSize: 13 }}>
+          {!isMobile && <div style={{ width: 270, flexShrink: 0, borderLeft: `1px solid ${c.border}`, padding: "18px 18px", minHeight: "calc(100vh - 50px)", fontSize: 13 }}>
             {/* Properties */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
               <span style={{ fontSize: 12, color: c.textTertiary, display: "flex", alignItems: "center", gap: 4 }}>Properties <span style={{ fontSize: 9 }}>▾</span></span>
@@ -665,7 +681,7 @@ function ProjectDetail() {
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.3"><circle cx="6" cy="4" r="2" /><path d="M2 10c0-2 1.8-3.2 4-3.2s4 1.2 4 3.2" /></svg>
               Tyler R created the project · Feb 26
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
@@ -675,7 +691,7 @@ function ProjectDetail() {
 // ============================================
 // MOCKUP 3: Cycle View with Compass in Sidebar
 // ============================================
-function CycleView() {
+function CycleView({ isMobile }) {
   const [expandedSection, setExpandedSection] = useState("coherence");
 
   const issues = [
@@ -710,7 +726,7 @@ function CycleView() {
 
   return (
     <div style={{ background: c.bg, minHeight: "100vh", fontFamily: font.sans, color: c.text }}>
-      <TopBar
+      <TopBar isMobile={isMobile}
         right={<div style={{ display: "flex", gap: 10, color: c.textTertiary, alignItems: "center" }}>
           <span style={{ fontSize: 12, cursor: "pointer" }}>Filter</span>
           <span style={{ fontSize: 12, cursor: "pointer" }}>Display</span>
@@ -726,12 +742,12 @@ function CycleView() {
       </TopBar>
 
       <div style={{ display: "flex" }}>
-        <Sidebar activeItem="Cycles" />
+        <Sidebar activeItem="Cycles" isMobile={isMobile} />
 
         {/* Issue list */}
         <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           {/* Group header */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 24px", borderBottom: `1px solid ${c.border}`, fontSize: 13 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: isMobile ? "10px 16px" : "12px 24px", borderBottom: `1px solid ${c.border}`, fontSize: 13 }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c.textTertiary} strokeWidth="1.5"><circle cx="7" cy="7" r="5" /></svg>
             <span style={{ color: c.text, fontWeight: 500 }}>Todo</span>
             <span style={{ color: c.textTertiary }}>{issues.length}</span>
@@ -740,34 +756,34 @@ function CycleView() {
 
           {/* Issue rows */}
           {issues.map(issue => (
-            <HoverRow key={issue.id} style={{ display: "flex", alignItems: "center", padding: "7px 24px", borderBottom: `1px solid ${c.borderSubtle}`, cursor: "pointer", gap: 10 }}>
-              <span style={{ fontSize: 12, color: c.textTertiary, width: 12, flexShrink: 0 }}>···</span>
+            <HoverRow key={issue.id} style={{ display: "flex", alignItems: "center", padding: isMobile ? "7px 16px" : "7px 24px", borderBottom: `1px solid ${c.borderSubtle}`, cursor: "pointer", gap: isMobile ? 8 : 10 }}>
+              {!isMobile && <span style={{ fontSize: 12, color: c.textTertiary, width: 12, flexShrink: 0 }}>···</span>}
               <span style={{ fontSize: 12, fontFamily: font.mono, color: c.textSecondary, flexShrink: 0, width: 56 }}>{issue.id}</span>
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c.textTertiary} strokeWidth="1.5" style={{ flexShrink: 0 }}><circle cx="7" cy="7" r="5" /></svg>
-              <span style={{ fontSize: 13, color: c.text, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {!isMobile && <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c.textTertiary} strokeWidth="1.5" style={{ flexShrink: 0 }}><circle cx="7" cy="7" r="5" /></svg>}
+              <span style={{ fontSize: 13, color: c.text, flex: 1, whiteSpace: isMobile ? "normal" : "nowrap", overflow: "hidden", textOverflow: isMobile ? undefined : "ellipsis" }}>
                 {issue.title}
               </span>
               {issue.flagged && (
                 <span style={{ display: "flex", color: c.amber, flexShrink: 0 }}>{Icons.compass}</span>
               )}
-              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+              {!isMobile && <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
                 {issue.labels.map(l => (
                   <span key={l.text} style={{ fontSize: 11, padding: "1px 6px", borderRadius: 100, background: c.surfaceRaised, color: c.textSecondary, fontWeight: 500 }}>{l.text}</span>
                 ))}
-              </div>
-              {issue.project && (
+              </div>}
+              {!isMobile && issue.project && (
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: c.textTertiary, flexShrink: 0 }}>
                   <span style={{ display: "flex" }}>{Icons.projects}</span>
                   {issue.project}
                 </span>
               )}
-              <span style={{ fontSize: 12, color: c.textTertiary, flexShrink: 0 }}>Mar 2</span>
+              {!isMobile && <span style={{ fontSize: 12, color: c.textTertiary, flexShrink: 0 }}>Mar 2</span>}
             </HoverRow>
           ))}
         </div>
 
         {/* Right sidebar */}
-        <div style={{ width: 460, flexShrink: 0, borderLeft: `1px solid ${c.border}`, padding: "18px 20px", minHeight: "calc(100vh - 50px)", fontSize: 13, overflowY: "auto" }}>
+        {!isMobile && <div style={{ width: 460, flexShrink: 0, borderLeft: `1px solid ${c.border}`, padding: "18px 20px", minHeight: "calc(100vh - 50px)", fontSize: 13, overflowY: "auto" }}>
           {/* Cycle dates */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
             <span style={{ fontSize: 12, color: c.textSecondary, background: c.surfaceRaised, padding: "2px 8px", borderRadius: 4 }}>Current</span>
@@ -908,7 +924,7 @@ function CycleView() {
             No assignee
             <span style={{ marginLeft: "auto", color: c.textSecondary }}>0% of 15</span>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );
@@ -927,6 +943,7 @@ export default function CompassMockups() {
   const [view, setView] = useState("project-detail");
   const [barHeight, setBarHeight] = useState(120);
   const barRef = useRef(null);
+  const isMobile = useIsMobile(768);
 
   const tabs = [
     { id: "initiatives-list", label: "Initiatives" },
@@ -938,20 +955,20 @@ export default function CompassMockups() {
     if (barRef.current) {
       setBarHeight(barRef.current.offsetHeight);
     }
-  }, [view]);
+  }, [view, isMobile]);
 
   return (
     <div>
       <div ref={barRef} style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 999, background: c.surface, borderBottom: `1px solid ${c.border}`, display: "flex", flexDirection: "column", alignItems: "center", padding: "10px 0 0", fontFamily: font.sans }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ display: "flex", color: c.amber, marginRight: 2 }}>{Icons.compass}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: c.text, marginRight: 14 }}>Compass</span>
+          {!isMobile && <span style={{ fontSize: 13, fontWeight: 600, color: c.text, marginRight: 14 }}>Compass</span>}
           <div style={{ display: "flex", background: c.bg, borderRadius: 8, padding: 3, gap: 2, border: `1px solid ${c.border}` }}>
             {tabs.map(tab => (
               <button key={tab.id} onClick={() => setView(tab.id)} style={{
                 background: view === tab.id ? c.accent : "transparent",
                 border: "none",
-                borderRadius: 6, padding: "6px 14px", fontSize: 12, fontWeight: 500,
+                borderRadius: 6, padding: isMobile ? "5px 10px" : "6px 14px", fontSize: isMobile ? 11 : 12, fontWeight: 500,
                 color: view === tab.id ? "white" : c.textSecondary,
                 cursor: "pointer", fontFamily: font.sans,
                 transition: "all 0.15s ease",
@@ -959,14 +976,14 @@ export default function CompassMockups() {
             ))}
           </div>
         </div>
-        <div style={{ maxWidth: 540, textAlign: "center", padding: "12px 20px 14px", fontSize: 12.5, color: c.text, lineHeight: 1.6 }}>
+        <div style={{ maxWidth: isMobile ? "100%" : 540, textAlign: "center", padding: isMobile ? "8px 16px 10px" : "12px 20px 14px", fontSize: isMobile ? 11.5 : 12.5, color: c.text, lineHeight: 1.6 }}>
           {viewDescriptions[view]}
         </div>
       </div>
       <div style={{ paddingTop: barHeight }}>
-        {view === "initiatives-list" && <InitiativesList />}
-        {view === "project-detail" && <ProjectDetail />}
-        {view === "cycle" && <CycleView />}
+        {view === "initiatives-list" && <InitiativesList isMobile={isMobile} />}
+        {view === "project-detail" && <ProjectDetail isMobile={isMobile} />}
+        {view === "cycle" && <CycleView isMobile={isMobile} />}
       </div>
     </div>
   );
